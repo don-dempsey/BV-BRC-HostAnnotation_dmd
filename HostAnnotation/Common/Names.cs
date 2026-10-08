@@ -26,6 +26,7 @@ namespace HostAnnotation.Common {
         // Action codes used in the console application.
         public static class ConsoleActionCode {
             public const string AnnotateHostGroup = "annotate_host_group";
+            public const string NormalizeCommonNames = "normalize_common_names";
         }
 
         // (Custom) User identity claim types.

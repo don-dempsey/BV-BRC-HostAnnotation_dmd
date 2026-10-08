@@ -46,7 +46,7 @@ namespace HostAnnotationWeb.Controllers {
                 if (Utils.isEmptyElseTrim(ref strID) || !int.TryParse(strID, out taxonNameID)) { throw new Exception("Invalid taxon name ID"); }
 
 
-                TaxonName? taxonName = _taxonomyService.getTaxonName(taxonNameID);
+                TaxonName? taxonName = await _taxonomyService.getTaxonName(taxonNameID);
 
                 response.data = taxonName;
                 response.statusCode = HttpStatusCode.OK;

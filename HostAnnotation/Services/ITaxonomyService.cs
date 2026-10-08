@@ -8,7 +8,7 @@ namespace HostAnnotation.Services {
     public interface ITaxonomyService {
 
         // Get a specific taxon name
-        TaxonName? getTaxonName(int id_);
+        Task<TaxonName?> getTaxonName(int id_);
 
         // Search all taxon names.
         List<TaxonName>? searchTaxonNames(string? searchText_, Terms.taxonomy_db? taxonomyDB_);

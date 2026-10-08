@@ -85,6 +85,10 @@ internal class Program {
                     int hostCount = await AnnotateHostGroup(args, host);
                     break;
 
+                case Names.ConsoleActionCode.NormalizeCommonNames:
+                    await NormalizeCommonNames(args, host);
+                    break;
+
                 default:
                     logger.LogWarning("Unknown action code supplied: {ActionCode}", actionCode);
                     LogBasicUsage(logger);
@@ -133,9 +137,7 @@ internal class Program {
             parseResult.groupId, parseResult.maxHosts?.ToString() ?? "null");
 
         // Run the synchronous work on the thread-pool to avoid blocking the caller thread.
-        await Task.Run(() => 
-            hostCount = annotationService.annotateHostGroup(parseResult.groupId, parseResult.maxHosts)
-        );
+        hostCount = await annotationService.annotateHostGroup(parseResult.groupId, parseResult.maxHosts);
 
         logger.LogInformation("annotateHostGroup finished and processed {HostCount} hosts", hostCount);
 
@@ -186,6 +188,24 @@ internal class Program {
         logger_.LogInformation("Ended on {EndDate} at {EndTime}", endedAt.ToString("MM/dd/yy"), endedAt.ToString("h:mmtt"));
         logger_.LogInformation("Total running time: {ElapsedTime}", elapsedText);
     }
+
+
+    private static async Task<bool> NormalizeCommonNames(string[] args_, IHost host_) {
+
+        // Resolve the service and logger.
+        using var scope = host_.Services.CreateScope();
+        var annotationService = scope.ServiceProvider.GetRequiredService<IAnnotationService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        var result = await annotationService.normalizeCommonNames();
+        if (result.isFailure) {
+            logger.LogError(result.getErrorMessage());
+        }
+
+        return true;
+    }
+
+
 
     // Parse parameters for annotateHostGroup from the command line arguments.
     private static (bool success, int groupId, int? maxHosts) ParseAnnotateHostGroupArgs(string[] args) {

@@ -19,7 +19,7 @@ namespace HostAnnotation.DataProviders {
         public AnnotationDataProvider(string dbConnectionString_) : base(dbConnectionString_) { }
 
 
-        public void createAnnotatedHost(int hostID_, double? scoreThreshold_ = null) {
+        public async Task<Result> createAnnotatedHost(int hostID_, double? scoreThreshold_ = null) {
 
             if (scoreThreshold_ == null) { scoreThreshold_ = Constants.DEFAULT_ANNOTATION_SCORE_THRESHOLD; }
 
@@ -28,31 +28,49 @@ namespace HostAnnotation.DataProviders {
                 Utils.createSqlParam("@scoreThreshold", SqlDbType.Float, scoreThreshold_)
             };
 
-            DbQueryManager.runStoredProcedure(_dbConnectionString, "dbo.createAnnotatedHost", parameters);
+            try {
+                await DbQueryManager.runStoredProcedureAsync(_dbConnectionString, "dbo.createAnnotatedHost", parameters);
+            } catch (Exception ex) {
+                return Result.failure(ex.Message);
+            }
+
+            return Result.success();
         }
 
         // Create host name/taxon name matches for a host's tokens.
-        public void createHostnameTaxonMatches(int hostID_) {
+        public async Task<Result> createHostnameTaxonMatches(int hostID_) {
 
             var parameters = new List<SqlParameter>() {
                 Utils.createSqlParam("@hostID", SqlDbType.Int, hostID_)
             };
 
-            DbQueryManager.runStoredProcedure(_dbConnectionString, "dbo.createHostnameTaxonMatches", parameters);
+            try {
+                await DbQueryManager.runStoredProcedureAsync(_dbConnectionString, "dbo.createHostnameTaxonMatches", parameters);
+            } catch (Exception exc_) {
+                return Result.failure(exc_.Message);
+            }
+            
+            return Result.success();
         }
 
-        public void createHostTokenAnnotations(int? algorithmID_, int hostID_) {
+        public async Task<Result> createHostTokenAnnotations(int? algorithmID_, int hostID_) {
 
             var parameters = new List<SqlParameter>() {
                 Utils.createSqlParam("@algorithmID", SqlDbType.Int, algorithmID_),
                 Utils.createSqlParam("@hostID", SqlDbType.Int, hostID_)
             };
 
-            DbQueryManager.runStoredProcedure(_dbConnectionString, "dbo.createHostTokenAnnotations_SingleRun", parameters);
+            try {
+                await DbQueryManager.runStoredProcedureAsync(_dbConnectionString, "dbo.createHostTokenAnnotations_SingleRun", parameters);
+            } catch (Exception exc_) {
+                return Result.failure(exc_.Message);
+            }
+
+            return Result.success(); 
         }
 
 
-        public bool createHostTokenVariations(string baseToken_, Terms.host_token_type baseType_, int hostID_, bool isOneOfMany_) {
+        public async Task<Result> createHostTokenVariations(string baseToken_, Terms.host_token_type baseType_, int hostID_, bool isOneOfMany_) {
 
             int isOneOfMany = isOneOfMany_ ? 1 : 0;
 
@@ -81,89 +99,28 @@ namespace HostAnnotation.DataProviders {
                 Utils.createSqlParam("@removeSpDotFromEnd", SqlDbType.NVarChar, variations.removeSpDotFromEnd)
             };
 
-            DbQueryManager.runStoredProcedure(_dbConnectionString, "dbo.createHostTokenVariations", parameters);
+            try {
+                await DbQueryManager.runStoredProcedureAsync(_dbConnectionString, "dbo.createHostTokenVariations", parameters);
+            } catch (Exception ex) {
+                return Result.failure(ex.Message);
+            }
 
-            return true;
+            return Result.success();
         }
 
 
-        /*
-        // Populate the hosts filtered_text using its text value.
-        public void filterHostTextByGroup(int groupID_) {
-
-            var sql = @$"UPDATE hosts SET filtered_text =
-                REPLACE(
-                    REPLACE(
-                        REPLACE(
-                            REPLACE(
-                                REPLACE(
-                                    REPLACE(
-                                        REPLACE(
-                                            REPLACE(
-                                                REPLACE(
-                                                    REPLACE(
-                                                        REPLACE(
-                                                            REPLACE(
-                                                                REPLACE(lower(text), '''', '')
-                                                            , '  ', ' ')
-                                                        , '_', ' ')
-                                                    , '""', '')
-                                                , '`', '')
-                                            , '!', '')
-                                        , '.', '')
-                                    , '?', '')
-                                , '(', ',')
-                            , ')', ',')
-                        , ':', ',')
-                    , ';', ',')
-                , '-', ' ')
-
-            where group_id = {groupID_} ";
-
-            DbQueryManager.update(_dbConnectionString, sql);
-        } */
-
-
-        // Update a host after it has been processed.
-        public void updateHostStatus(string? filteredText_, int hostID_, bool isValid_, string? messages_ = null) {
-
-            // If the host is invalid, the filtered text might be empty, but if it's valid, the filtered text shouldn't be empty.
-            if (isValid_ && string.IsNullOrEmpty(filteredText_)) { throw SmartException.create("Invalid filtered text"); }
-
-            var parameters = new List<SqlParameter>() {
-                Utils.createSqlParam("@filteredText", SqlDbType.NVarChar, filteredText_),
-                Utils.createSqlParam("@messages", SqlDbType.NVarChar, messages_)
-            };
-
-            var sql = new StringBuilder();
-            sql.AppendLine("UPDATE hosts SET ");
-            sql.AppendLine("filtered_text = @filteredText, ");
-            sql.AppendLine("is_processed = 1, ");
-            sql.AppendLine($"is_valid = {(isValid_ ? 1 : 0)}, ");
-            sql.AppendLine("messages = @messages, ");
-            sql.AppendLine("processed_on = SYSDATETIMEOFFSET() ");
-            sql.AppendLine($"WHERE id = {hostID_} ");
-
-            DbQueryManager.update(_dbConnectionString, sql.ToString(), parameters);
-        }
-
-        public AnnotatedHost? getAnnotatedHost(int hostID_) {
-
-            AnnotatedHost? annotatedHost = null;
+        public async Task<AnnotatedHost?> getAnnotatedHost(int hostID_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT TOP 1 ");
             sql.AppendLine(AnnotatedHost.generatePartialQuery());
             sql.AppendLine($"WHERE [host_id] = {hostID_} ");
 
-            UsefulObject.get<AnnotatedHost>(_dbConnectionString, sql.ToString(), ref annotatedHost);
-
-            return annotatedHost;
+            return await UsefulObject.getAsync<AnnotatedHost>(_dbConnectionString, sql.ToString());
         }
 
-        public List<HostQuery>? getHostsByGroup(int groupID_, int? maxHosts_) {
 
-            List<HostQuery>? hosts = null;
+        public async Task<List<HostQuery>?> getHostsByGroup(int groupID_, int? maxHosts_) {
 
             var limitText = maxHosts_ == null 
                 ? "" 
@@ -180,22 +137,18 @@ namespace HostAnnotation.DataProviders {
             sql.AppendLine("AND (is_valid IS NULL OR is_valid = 0) ");
             sql.AppendLine("ORDER BY text ");
 
-            UsefulObject.get<HostQuery>(_dbConnectionString, sql.ToString(), ref hosts);
-
-            return hosts;
+            return await UsefulObject.getAsyncList<HostQuery>(_dbConnectionString, sql.ToString());
         }
 
-        public List<HostTaxonMatch>? getHostTaxaMatches(int hostID_) {
 
-            List<HostTaxonMatch>? matches = null;
+        public async Task<List<HostTaxonMatch>?> getHostTaxaMatches(int hostID_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT ");
             sql.AppendLine(HostTaxonMatch.generatePartialQuery());
             sql.AppendLine($"WHERE hhtm.[host_id] = {hostID_} ");
 
-            UsefulObject.get<HostTaxonMatch>(_dbConnectionString, sql.ToString(), ref matches);
-            return matches;
+            return await UsefulObject.getAsyncList<HostTaxonMatch>(_dbConnectionString, sql.ToString());
         }
 
 
@@ -252,26 +205,141 @@ namespace HostAnnotation.DataProviders {
         }
 
 
-        public List<AnnotatedHost>? searchAnnotatedHosts(string? searchText_) {
+        public async Task<Result> normalizeCommonNames() {
 
-            if (Utils.isEmptyElseTrim(ref searchText_) || searchText_!.Length < 3) { throw SmartException.create("Please enter valid search text with at least 3 characters"); }
+            var sql = CommonNameComparison.generatePartialQuery();
+
+            List<CommonNameComparison>? comparisons = await UsefulObject.getAsyncList<CommonNameComparison>(_dbConnectionString, sql);
+            if (comparisons == null || comparisons.Count == 0) { return Result.failure("No common names that differ by case were found"); }
+
+            var errors = new List<string>();
+
+            foreach (var comparison in comparisons) {
+
+                if (string.IsNullOrEmpty(comparison.itisName) || string.IsNullOrEmpty(comparison.ncbiName)) {
+                    errors.Add($"ITIS name = {comparison.itisName ?? "null"} and NCBI name = {comparison.ncbiName ?? "null"}");
+                    continue;
+                }
+
+                var itisWords = comparison.itisName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var ncbiWords = comparison.ncbiName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (itisWords.Length != ncbiWords.Length) {
+                    errors.Add($"ITIS name = {comparison.itisName ?? "null"} and NCBI name = {comparison.ncbiName ?? "null"} have different lengths");
+                    continue;
+                }
+
+                var newWords = new List<string>();
+
+                for (int w = 0; w < itisWords.Length && w < ncbiWords.Length; w++) {
+                    var itisWord = itisWords[w];
+                    var ncbiWord = ncbiWords[w];
+
+                    char[] newChars = new char[itisWord.Length];
+                    for (int c = 0; c < itisWord.Length && c < ncbiWord.Length; c++) {
+                        var itisChar = itisWord[c];
+                        var ncbiChar = ncbiWord[c];
+
+                        if (char.IsUpper(itisChar) && char.IsUpper(ncbiChar)) {
+                            newChars[c] = itisChar;
+                        } else {
+                            newChars[c] = char.ToLower(itisChar);
+                        }
+                    }
+
+                    newWords.Add(new string(newChars));
+
+                    /*
+                    This works but only compares the first character of each word.
+                    if (char.IsUpper(itisWord[0]) && char.IsUpper(ncbiWord[0])) {
+                       newWords.Add(itisWord);
+                    } else {
+                       newWords.Add(itisWord[0].ToString().ToUpper() + itisWord.Substring(1));
+                    }*/
+                }
+
+                var newName = string.Join(' ', newWords);
+
+                var parameters = new List<SqlParameter>() {
+                    Utils.createSqlParam("@itisID", SqlDbType.Int, comparison.itisTnId),
+                    Utils.createSqlParam("@name", SqlDbType.NVarChar, newName),
+                    Utils.createSqlParam("@ncbiID", SqlDbType.Int, comparison.ncbiTnId)
+                };
+
+                var updateSQL = @"
+                    UPDATE taxon_name SET name = @name WHERE id = @itisID;
+                    UPDATE taxon_name SET name = @name WHERE id = @ncbiID;
+                ";
+
+                try {
+                    // Run the update queries
+                    var result = await DbQueryManager.executeNonQueryAsync(_dbConnectionString, updateSQL, parameters);
+
+                } catch (Exception exc_) {
+                    errors.Add(exc_.Message);
+                }
+            }
+
+            if (errors.Count > 0) {
+                var message = $"{errors.Count} errors" + string.Join("\n", errors);
+                return Result.failure(message);
+            }
+
+            return Result.success();
+        }
+
+
+        public async Task<Result<List<AnnotatedHost>?>> searchAnnotatedHosts(string? searchText_) {
 
             List<AnnotatedHost>? annotatedHosts = null;
 
+            try {
+                if (Utils.isEmptyElseTrim(ref searchText_) || searchText_!.Length < 3) {
+                    throw new Exception("Please enter valid search text with at least 3 characters");
+                }
+
+                var parameters = new List<SqlParameter>() {
+                    Utils.createSqlParam("@searchText", SqlDbType.NVarChar, searchText_)
+                };
+
+                var sql = new StringBuilder();
+                sql.AppendLine("SELECT ");
+                sql.AppendLine(AnnotatedHost.generatePartialQuery());
+                sql.AppendLine("WHERE host_text LIKE '%'+@searchText+'%' ");
+                sql.AppendLine("ORDER BY host_text ");
+
+                annotatedHosts = await UsefulObject.getAsyncList<AnnotatedHost>(_dbConnectionString, sql.ToString(), parameters);
+
+            } catch (Exception exc_) {
+                return Result<List<AnnotatedHost>?>.failure(exc_.Message);
+            }
+
+            return Result<List<AnnotatedHost>?>.success(annotatedHosts);
+        }
+
+        // Update a host after it has been processed.
+        public void updateHostStatus(string? filteredText_, int hostID_, bool isValid_, string? messages_ = null) {
+
+            // If the host is invalid, the filtered text might be empty, but if it's valid, the filtered text shouldn't be empty.
+            if (isValid_ && string.IsNullOrEmpty(filteredText_)) { throw SmartException.create("Invalid filtered text"); }
+
             var parameters = new List<SqlParameter>() {
-                Utils.createSqlParam("@searchText", SqlDbType.NVarChar, searchText_)
+                Utils.createSqlParam("@filteredText", SqlDbType.NVarChar, filteredText_),
+                Utils.createSqlParam("@messages", SqlDbType.NVarChar, messages_)
             };
 
             var sql = new StringBuilder();
-            sql.AppendLine("SELECT ");
-            sql.AppendLine(AnnotatedHost.generatePartialQuery());
-            sql.AppendLine("WHERE host_text LIKE '%'+@searchText+'%' ");
-            sql.AppendLine("ORDER BY host_text ");
+            sql.AppendLine("UPDATE hosts SET ");
+            sql.AppendLine("filtered_text = @filteredText, ");
+            sql.AppendLine("is_processed = 1, ");
+            sql.AppendLine($"is_valid = {(isValid_ ? 1 : 0)}, ");
+            sql.AppendLine("messages = @messages, ");
+            sql.AppendLine("processed_on = SYSDATETIMEOFFSET() ");
+            sql.AppendLine($"WHERE id = {hostID_} ");
 
-            UsefulObject.get<AnnotatedHost>(_dbConnectionString, parameters, sql.ToString(), ref annotatedHosts);
-
-            return annotatedHosts;
+            DbQueryManager.update(_dbConnectionString, sql.ToString(), parameters);
         }
+
 
         /*
         // Update the host's "is valid" and (optional) "messages" attributes.
@@ -286,7 +354,42 @@ namespace HostAnnotation.DataProviders {
             DbQueryManager.update(_dbConnectionString, $"UPDATE hosts SET is_valid = {value}, messages = @messages WHERE id = {hostID_} ", parameters);
         }*/
 
+        /*
+        // Populate the hosts filtered_text using its text value.
+        public void filterHostTextByGroup(int groupID_) {
 
-        
+            var sql = @$"UPDATE hosts SET filtered_text =
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                REPLACE(
+                                    REPLACE(
+                                        REPLACE(
+                                            REPLACE(
+                                                REPLACE(
+                                                    REPLACE(
+                                                        REPLACE(
+                                                            REPLACE(
+                                                                REPLACE(lower(text), '''', '')
+                                                            , '  ', ' ')
+                                                        , '_', ' ')
+                                                    , '""', '')
+                                                , '`', '')
+                                            , '!', '')
+                                        , '.', '')
+                                    , '?', '')
+                                , '(', ',')
+                            , ')', ',')
+                        , ':', ',')
+                    , ';', ',')
+                , '-', ' ')
+
+            where group_id = {groupID_} ";
+
+            DbQueryManager.update(_dbConnectionString, sql);
+        } */
+
+
     }
 }

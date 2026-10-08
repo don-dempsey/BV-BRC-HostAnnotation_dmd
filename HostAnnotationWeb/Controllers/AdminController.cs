@@ -39,8 +39,6 @@ namespace HostAnnotationWeb.Controllers {
 
                 if (string.IsNullOrEmpty(parameters.email)) { throw new Exception("Invalid email parameter"); }
 
-                string? message = null;
-
                 Guid organizationUID;
                 if (!Guid.TryParse(parameters.orgUID, out organizationUID)) { throw new Exception("Invalid org UID"); }
 
@@ -55,10 +53,10 @@ namespace HostAnnotationWeb.Controllers {
                 if (!Utils.isEmptyElseTrim(ref strStatus) && Enum.TryParse(strStatus, out Terms.user_status testStatus)) { userStatus = testStatus; }
 
                 // Create a new person.
-                bool success = _personService.createPerson(_userIdentity!.personID, parameters.email, parameters.firstName, parameters.lastName, ref message, 
+                var result = await _personService.createPerson(_userIdentity!.personID, parameters.email, parameters.firstName, parameters.lastName,
                     organizationUID, parameters.password, apiRole, userStatus);
 
-                response.data = success;
+                response.data = true; // TODO: Is this what the UI is expecting?
                 response.statusCode = HttpStatusCode.OK;
             }
             catch (Exception ex_) {
@@ -79,7 +77,7 @@ namespace HostAnnotationWeb.Controllers {
                 if (_userIdentity == null || !_userIdentity.isValid) { throw new Exception("Invalid user identity"); }
 
                 // Get all people
-                List<Person>? people = _personService.getPeople();
+                List<Person>? people = await _personService.getPeople();
 
                 response.data = people;
                 response.statusCode = HttpStatusCode.OK;

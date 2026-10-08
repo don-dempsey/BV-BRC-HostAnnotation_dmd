@@ -10,14 +10,20 @@ CREATE VIEW dbo.v_annotated_host AS
 SELECT 
 	ah.[host_id],
 	h.text AS host_text,
-	
+	ah.id AS ah_id,
+
 	ROUND(ah.sci_name_score, 2) AS score,
 	ah.status,
 
 	ah.rank_name,
 	ah.scientific_name,
 
-	ISNULL(ah.common_name, '') AS common_name,
+	common_name = CASE
+		WHEN ah.common_name IS NULL THEN ''
+		WHEN ah.common_name = 'cattle' THEN 'cow'
+		ELSE ah.common_name
+	END,
+
 	ISNULL(ah.com_name_synonyms,'') AS com_name_synonyms,
 	
 	tl.lineage,
@@ -28,7 +34,9 @@ SELECT
 	ISNULL(tl.host_group, '') as bvbrc_host_group,
 
 	snTaxDB.term_key AS taxonomy_db,
-	ah.sci_name_taxonomy_id AS taxonomy_id
+	ah.sci_name_taxonomy_id AS taxonomy_id,
+
+	h.group_id AS host_group_id
 
 FROM annotated_host ah
 JOIN hosts h ON h.id = ah.[host_id]

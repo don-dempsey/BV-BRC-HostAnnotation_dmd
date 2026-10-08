@@ -51,13 +51,13 @@ namespace HostAnnotationWeb.Controllers {
                 if (Utils.isEmptyElseTrim(ref email)) { throw SmartException.create("Invalid email parameter"); }
                 if (Utils.isEmptyElseTrim(ref password)) { throw SmartException.create("Invalid password parameter"); }
 
-                Person? person = null;
-                string? message = null;
-
                 // Authenticate the person and, if successful, return the person object.
-                if (!_personService.authenticate(email!, ref message, password!, ref person) || person == null) {
-                    throw SmartException.create("Unable to login");
+                var result = await _personService.authenticate(email!, password!);
+                if (result.isFailure || result.value == null) {
+                    throw new Exception(result.getErrorMessage("Unable to login"));
                 }
+
+                Person? person = result.value;
 
                 // Create an auth token.
                 string? authToken = _tokenService.createToken(person);
@@ -70,7 +70,7 @@ namespace HostAnnotationWeb.Controllers {
                 }
 
                 response.isAuthenticated = true;
-                response.message = message;
+                response.message = "Login successful"; // TODO: What does the UI need for this?
                 response.role = person.role;
                 response.statusCode = HttpStatusCode.OK;
             }

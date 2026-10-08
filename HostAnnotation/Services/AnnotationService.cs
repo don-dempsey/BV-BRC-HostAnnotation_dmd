@@ -50,16 +50,16 @@ namespace HostAnnotation.Services {
         // Annotate all hosts with this group ID. If a non-null max hosts value is provided, only that many hosts will
         // be processed now. Otherwise, all valid hosts in the specified group (possibly only unprocessed)
         // will be annotated.
-        public int annotateHostGroup(int groupID_, int? maxHosts_) {
+        public async Task<int> annotateHostGroup(int groupID_, int? maxHosts_) {
 
             // This will be incremented when a host is successfully annotated.
             int hostCount = 1;
 
             // Load curated words
-            CuratedWords? curatedWords = _wordService.getCuratedWords();
+            CuratedWords? curatedWords = await _wordService.getCuratedWords();
             if (curatedWords == null) { throw new Exception("Invalid curated words"); }
 
-            List<HostQuery>? hosts = _dataProvider.getHostsByGroup(groupID_, maxHosts_);
+            List<HostQuery>? hosts = await _dataProvider.getHostsByGroup(groupID_, maxHosts_);
             if (hosts == null || hosts.Count < 1) {
                 _logger.LogError($"All hosts with group ID {groupID_} have been processed");
                 throw SmartException.create($"All hosts with group ID {groupID_} have been processed");
@@ -177,12 +177,12 @@ namespace HostAnnotation.Services {
         }
 
 
-        public AnnotatedHost? annotateHostText(string initialText_) {
+        public async Task<AnnotatedHost?> annotateHostText(string initialText_) {
 
             AnnotatedHost? annotatedHost = null;
 
             // Load curated words
-            CuratedWords? curatedWords = _wordService.getCuratedWords();
+            CuratedWords? curatedWords = await _wordService.getCuratedWords();
             if (curatedWords == null) { throw new Exception("Invalid curated words"); }
 
             // Remove the filtered characters from the initial text and populate the filtered text.
@@ -266,21 +266,25 @@ namespace HostAnnotation.Services {
             _dataProvider.createAnnotatedHost(hostID);
 
             // Get the annotated host.
-            annotatedHost = _dataProvider.getAnnotatedHost(hostID);
+            annotatedHost = await _dataProvider.getAnnotatedHost(hostID);
 
             return annotatedHost;
         }
 
-        public AnnotatedHost? getAnnotatedHost(int hostID) {
-            return _dataProvider.getAnnotatedHost(hostID);
+        public async Task<AnnotatedHost?> getAnnotatedHost(int hostID) {
+            return await _dataProvider.getAnnotatedHost(hostID);
         }
 
-        public List<HostTaxonMatch>? getHostTaxaMatches(int hostID_) {
-            return _dataProvider.getHostTaxaMatches(hostID_);
+        public async Task<List<HostTaxonMatch>?> getHostTaxaMatches(int hostID_) {
+            return await _dataProvider.getHostTaxaMatches(hostID_);
         }
 
-        public List<AnnotatedHost>? searchAnnotatedHosts(string searchText_) {
-            return _dataProvider.searchAnnotatedHosts(searchText_);
+        public async Task<Result> normalizeCommonNames() {
+            return await _dataProvider.normalizeCommonNames();
+        }
+
+        public async Task<Result<List<AnnotatedHost>?>> searchAnnotatedHosts(string searchText_) {
+            return await _dataProvider.searchAnnotatedHosts(searchText_);
         }
 
         // other members unchanged...

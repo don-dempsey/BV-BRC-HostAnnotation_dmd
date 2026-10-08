@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
-
+using System.Threading.Tasks;
 using HostAnnotation.Common;
 using HostAnnotation.Models;
 using HostAnnotation.Utilities;
@@ -16,18 +16,14 @@ namespace HostAnnotation.DataProviders {
 
 
         // Get a specific taxon name.
-        public TaxonName? getTaxonName(int id_) {
-
-            TaxonName? taxonName = null;
+        public async Task<TaxonName?> getTaxonName(int id_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT TOP 1 ");
             sql.AppendLine(TaxonName.generatePartialQuery());
             sql.AppendLine($"WHERE id = {id_} ");
 
-            UsefulObject.get<TaxonName>(_dbConnectionString, sql.ToString(), ref taxonName);
-
-            return taxonName;
+            return await UsefulObject.getAsync<TaxonName>(_dbConnectionString, sql.ToString());
         }
 
 

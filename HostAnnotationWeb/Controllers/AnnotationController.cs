@@ -45,7 +45,7 @@ namespace HostAnnotationWeb.Controllers {
                 if (Utils.isEmptyElseTrim(ref hostText)) { throw new Exception("Invalid host text (empty)"); }
 
                 // Annotate the host text.
-                AnnotatedHost? annotatedHost = _annotationService.annotateHostText(hostText!);
+                AnnotatedHost? annotatedHost = await _annotationService.annotateHostText(hostText!);
 
                 response.data = annotatedHost;
                 response.statusCode = HttpStatusCode.OK;
@@ -75,7 +75,7 @@ namespace HostAnnotationWeb.Controllers {
                 if (Utils.isEmptyElseTrim(ref strHostID) || !int.TryParse(strHostID, out hostID)) { throw new Exception("Invalid host ID"); }
 
                 // Get the annotated host by ID.
-                AnnotatedHost? annotatedHost = _annotationService.getAnnotatedHost(hostID);
+                AnnotatedHost? annotatedHost = await _annotationService.getAnnotatedHost(hostID);
 
                 response.data = annotatedHost;
                 response.statusCode = HttpStatusCode.OK;
@@ -104,7 +104,7 @@ namespace HostAnnotationWeb.Controllers {
                 string? strHostID = form.hostID;
                 if (string.IsNullOrEmpty(strHostID) || !int.TryParse(strHostID, out hostID)) { throw new Exception("Invalid host ID"); }
 
-                List<HostTaxonMatch>? matches = _annotationService.getHostTaxaMatches(hostID);
+                List<HostTaxonMatch>? matches = await _annotationService.getHostTaxaMatches(hostID);
 
                 response.data = matches;
                 response.statusCode = HttpStatusCode.OK;
@@ -135,9 +135,12 @@ namespace HostAnnotationWeb.Controllers {
                 if (Utils.isEmptyElseTrim(ref searchText) || searchText!.Length < 3) { throw new Exception("Please search using at least 3 characters"); }
 
                 // Search annotated hosts
-                List<AnnotatedHost>? results = _annotationService.searchAnnotatedHosts(searchText);
+                var result = await _annotationService.searchAnnotatedHosts(searchText);
+                if (result.isFailure) {
+                    throw new Exception(result.getErrorMessage());
+                }
 
-                response.data = results;
+                response.data = result.value;
                 response.statusCode = HttpStatusCode.OK;
             }
             catch (Exception ex_) {

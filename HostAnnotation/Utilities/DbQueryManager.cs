@@ -1,15 +1,44 @@
 ﻿
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
 using System.Data.SqlClient;
 
 namespace HostAnnotation.Utilities {
 
     public class DbQueryManager {
 
-        
+        // Execute a non-query that returns no results.
+        public async static Task<int?> executeNonQueryAsync(string dbConnectionString_, string? query_, List<SqlParameter>? parameters_ = null) {
+
+            if (string.IsNullOrEmpty(dbConnectionString_)) { throw SmartException.create("Invalid db connection string"); }
+            if (string.IsNullOrEmpty(query_)) { throw SmartException.create("Invalid query"); }
+
+            int? result = null;
+
+            using (var dbConnection = new SqlConnection(dbConnectionString_))
+            using (var dbCommand = new SqlCommand(query_, dbConnection)) {
+
+                try {
+                    await dbConnection.OpenAsync();
+
+                    // Add any SQL parameters that were provided.
+                    if (parameters_ != null && parameters_.Count > 0) {
+                        dbCommand.Parameters.AddRange([.. parameters_]);
+                    }
+
+                    result = await dbCommand.ExecuteNonQueryAsync();
+                } finally {
+
+                    // Explicitly clear the parameters to avoid an error that can occur the next time a SqlCommand with
+                    // parameters is executed: "The SqlParameter is already contained by another SqlParameterCollection."
+                    dbCommand.Parameters.Clear();
+
+                    await dbConnection.CloseAsync();
+                }
+            }
+
+            return result;
+        }
+
         // Execute a query and return a single-value result.
         public static T? getSingleValue<T>(string dbConnectionString_, string? query_, List<SqlParameter>? parameters_ = null) {
 
@@ -74,6 +103,62 @@ namespace HostAnnotation.Utilities {
         #endregion
 
 
+
+        // Execute the SQL query (using query parameters) and don't return any results.
+        public async static Task<Dictionary<string, object?>?> runStoredProcedureAsync(
+            string dbConnectionString_, string? procedureName_, List<SqlParameter>? parameters_ = null) {
+
+            Dictionary<string, object?>? results = null;
+
+            using (var connection = new SqlConnection(dbConnectionString_))
+            using (var cmd = new SqlCommand(procedureName_, connection)) {
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                if (parameters_ != null && parameters_.Count > 0) {
+                    cmd.Parameters.AddRange([.. parameters_]);
+                }
+
+                try {
+                    await connection.OpenAsync();
+
+                    int result = await cmd.ExecuteNonQueryAsync();
+
+                    // Are there any output parameters?
+                    foreach (SqlParameter parameter in cmd.Parameters) {
+
+                        if (parameter.Direction != ParameterDirection.Output) { continue; }
+                        if (results == null) { 
+                            results = []; 
+                        }
+
+                        object? value = parameter.Value;
+                        if (value.GetType().Equals(typeof(DBNull))) { value = null; }
+
+                        results.Add(parameter.ParameterName, value);
+                    }
+                }
+                catch (Exception exc_) {
+                    throw SmartException.create(exc_.Message);
+                }
+                finally {
+
+                    // Explicitly clear the parameters to avoid an error that can occur the next time a SqlCommand with
+                    // parameters is executed: "The SqlParameter is already contained by another SqlParameterCollection."
+                    cmd.Parameters.Clear();
+
+                    connection.Close();
+                }
+            }
+
+            return results;
+        }
+
+
+        #region Code graveyard
+
+
+        /*
         // Execute the SQL query (using query parameters) and don't return any results.
         public static void runStoredProcedure(string dbConnectionString_, string? procedureName_, List<SqlParameter>? parameters_ = null) {
 
@@ -106,14 +191,11 @@ namespace HostAnnotation.Utilities {
                     connection.Close();
                 }
             }
-        }
+        }*/
 
-
-        #region Code graveyard
 
         /*
         
-
         // This object maintains the results of a SQL query as a Dictionary of (string) key/value pairs
         public class ResultRow {
 

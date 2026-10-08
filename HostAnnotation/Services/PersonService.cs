@@ -38,60 +38,62 @@ namespace HostAnnotation.Services {
 
 
         // Try to authenticate the user with an email address and password.
-        public bool authenticate(string email_, ref string? message_, string password_, ref Person? person_) {
+        public async Task<Result<Person?>> authenticate(string email_, string password_) {
 
-            bool result = true;
-            message_ = null;
+            Person? person = null;
 
             try {
-                person_ = _dataProvider.get(email_);
+                person = await _dataProvider.get(email_);
 
-                if (person_ == null) { throw SmartException.create("No matching account"); }
-                if (string.IsNullOrEmpty(person_.passwordHash)) { throw new Exception("Invalid password hash"); }
+                if (person == null) { throw SmartException.create("No matching account"); }
+                if (string.IsNullOrEmpty(person.passwordHash)) { 
+                    throw new Exception("Invalid password hash"); 
+                }
 
-                bool isValid = UserSecurity.verifyPassword(person_.passwordHash, password_);
-                if (!isValid) { throw new Exception("Invalid password"); }
-
-                message_ = "Valid email and password";
+                bool isValid = UserSecurity.verifyPassword(person.passwordHash, password_);
+                if (!isValid) { 
+                    throw new Exception("Invalid password"); 
+                }
             }
             catch (Exception exc_) {
-                person_ = null;
-                result = false;
-                message_ = exc_.Message;
+                return Result<Person?>.failure(exc_.Message);
             }
 
-            return result;
+            return Result<Person?>.success(person);
         }
 
 
         // Create a new person.
-        public bool createPerson(int createdBy_, string? email_, string? firstName_, string? lastName_, ref string? message_, Guid orgUID_,
+        public async Task<Result> createPerson(int createdBy_, string? email_, string? firstName_, string? lastName_, Guid orgUID_,
             string? password_, Terms.api_role? role_, Terms.user_status? status_) {
 
             // TODO: validate all parameters
-            if (Utils.isEmptyElseTrim(ref email_)) { message_ = "Invalid email"; return false; }
-            if (Utils.isEmptyElseTrim(ref firstName_)) { message_ = "Invalid first name"; return false; }
-            if (Utils.isEmptyElseTrim(ref lastName_)) { message_ = "Invalid last name"; return false; }
-            if (Utils.isEmptyElseTrim(ref password_)) { message_ = "Invalid password"; return false; }
+            if (Utils.isEmptyElseTrim(ref email_)) { return Result.failure("Invalid email"); }
+            if (Utils.isEmptyElseTrim(ref firstName_)) { return Result.failure("Invalid first name"); }
+            if (Utils.isEmptyElseTrim(ref lastName_)) { return Result.failure("Invalid last name"); }
+            if (Utils.isEmptyElseTrim(ref password_)) { return Result.failure("Invalid password"); }
 
             if (status_ == null) { status_ = Terms.user_status.active; }
 
             string? passwordHash = null;
             if (!Utils.isEmptyElseTrim(ref password_)) { passwordHash = UserSecurity.hashPassword(password_); }
-
-            return _dataProvider.createPerson(createdBy_, email_!, firstName_!, lastName_!, ref message_, orgUID_, passwordHash, role_!.Value, status_.Value);
+            if (string.IsNullOrEmpty(passwordHash)) { 
+                return Result.failure("Invalid password hash"); 
+            }
+            
+            return await _dataProvider.createPerson(createdBy_, email_!, firstName_!, lastName_!, orgUID_, passwordHash, role_!.Value, status_.Value);
         }
 
 
         // Get all people.
-        public List<Person>? getPeople() {
-            return _dataProvider.getAll();
+        public async Task<List<Person>?> getPeople() {
+            return await _dataProvider.getAll();
         }
 
 
         // Get a person by ID.
-        public Person? getPerson(int id_) {
-            return _dataProvider.get(id_);
+        public async Task<Person?> getPerson(int id_) {
+            return await _dataProvider.get(id_);
         }
 
     }

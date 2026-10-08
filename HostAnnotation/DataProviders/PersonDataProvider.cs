@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
-
+using System.Threading.Tasks;
 using HostAnnotation.Common;
 using HostAnnotation.Models;
 using HostAnnotation.Utilities;
@@ -15,10 +15,8 @@ namespace HostAnnotation.DataProviders {
         public PersonDataProvider(string dbConnectionString) : base(dbConnectionString) { }
 
 
-        public bool createPerson(int createdBy_, string email_, string firstName_, string lastName_, ref string? message_, 
+        public async Task<Result> createPerson(int createdBy_, string email_, string firstName_, string lastName_,
             Guid orgUID_, string passwordHash_, Terms.api_role role_, Terms.user_status status_) {
-
-            bool result = false;
 
             var parameters = new List<SqlParameter>() {
                 Utils.createSqlParam("@createdBy", SqlDbType.Int, createdBy_),
@@ -34,59 +32,46 @@ namespace HostAnnotation.DataProviders {
 
             try {
                 // TODO: is the id output parameter in the parameters below?
-                DbQueryManager.runStoredProcedure(_dbConnectionString, "dbo.createPerson", parameters);
-                result = true;
+                await DbQueryManager.runStoredProcedureAsync(_dbConnectionString, "dbo.createPerson", parameters);
             }
             catch (Exception e_) {
-                message_ = e_.Message;
+                return Result.failure(e_.Message);
             }
 
-            return result;
+            return Result.success();
         }
 
 
-        public List<Person>? getAll() {
-
-            List<Person>? people = null;
+        public async Task<List<Person>?> getAll() {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT ");
             sql.AppendLine(Person.generatePartialQuery());
             sql.AppendFormat("ORDER BY last_name, first_name ");
 
-            UsefulObject.get<Person>(_dbConnectionString, sql.ToString(), ref people);
-
-            return people;
+            return await UsefulObject.getAsyncList<Person>(_dbConnectionString, sql.ToString());
         }
 
         // Get a person by email address.
-        public Person? get(string email_) {
-
-            Person? person = null;
+        public async Task<Person?> get(string email_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT TOP 1 ");
             sql.AppendLine(Person.generatePartialQuery());
             sql.AppendFormat($"WHERE email = '{email_}' ");
 
-            UsefulObject.get<Person>(_dbConnectionString, sql.ToString(), ref person);
-
-            return person;
+            return await UsefulObject.getAsync<Person>(_dbConnectionString, sql.ToString());
         }
 
         // Get a person by ID.
-        public Person? get(int id_) {
-
-            Person? person = null;
+        public async Task<Person?> get(int id_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT TOP 1 ");
             sql.AppendLine(Person.generatePartialQuery());
             sql.AppendFormat($"WHERE id = {id_} ");
 
-            UsefulObject.get<Person>(_dbConnectionString, sql.ToString(), ref person);
-
-            return person;
+            return await UsefulObject.getAsync<Person>(_dbConnectionString, sql.ToString());
         }
 
 

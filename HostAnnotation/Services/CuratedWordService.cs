@@ -30,14 +30,14 @@ namespace HostAnnotation.Services {
         }
 
         // Get a specific curated word.
-        public CuratedWord? getCuratedWord(Guid uid_) {
-            return _dataProvider.getWord(uid_);
+        public async Task<CuratedWord?> getCuratedWord(Guid uid_) {
+            return await _dataProvider.getWord(uid_);
         }
 
         // Get all valid curated words.
-        public CuratedWords? getCuratedWords() {
+        public async Task<CuratedWords?> getCuratedWords() {
 
-            List<CuratedWord>? words = _dataProvider.getValidWords();
+            List<CuratedWord>? words = await _dataProvider.getValidWords();
 
             // Create and initialize an instance of CuratedWords.
             return new CuratedWords(words);

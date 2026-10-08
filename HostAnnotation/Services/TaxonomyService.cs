@@ -29,8 +29,8 @@ namespace HostAnnotation.Services {
         }
 
         // Get a specific taxon name
-        public TaxonName? getTaxonName(int id_) {
-            return _dataProvider.getTaxonName(id_);
+        public async Task<TaxonName?> getTaxonName(int id_) {
+            return await _dataProvider.getTaxonName(id_);
         }
 
         // Search all taxon names.

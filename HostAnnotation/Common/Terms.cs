@@ -133,6 +133,7 @@ namespace HostAnnotation.Common {
             bv_brc,
             ebird,
             ictv,
+            idpcc,
             itis,
             ncbi
         }

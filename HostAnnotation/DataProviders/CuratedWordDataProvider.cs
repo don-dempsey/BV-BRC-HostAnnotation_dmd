@@ -2,7 +2,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
-
+using System.Threading.Tasks;
 using HostAnnotation.Common;
 using HostAnnotation.Models;
 using HostAnnotation.Utilities;
@@ -15,9 +15,7 @@ namespace HostAnnotation.DataProviders {
         public CuratedWordDataProvider(string dbConnectionString) : base(dbConnectionString) { }
 
 
-        public List<CuratedWord>? getValidWords() {
-
-            List<CuratedWord>? words = null;
+        public async Task<List<CuratedWord>?> getValidWords() {
 
             var sql = new StringBuilder();
 
@@ -31,25 +29,19 @@ namespace HostAnnotation.DataProviders {
             sql.AppendLine("AND type_tid NOT IN (@ignoreTID) ");
             sql.AppendLine("ORDER BY [type], search_text ");
 
-            UsefulObject.get<CuratedWord>(_dbConnectionString, sql.ToString(), ref words);
-
-            return words;
+            return await UsefulObject.getAsyncList<CuratedWord>(_dbConnectionString, sql.ToString());
         }
 
 
         // Get a specific curated word.
-        public CuratedWord? getWord(Guid uid_) {
-
-            CuratedWord? word = null;
+        public async Task<CuratedWord?> getWord(Guid uid_) {
 
             var sql = new StringBuilder();
             sql.AppendLine("SELECT TOP 1 ");
             sql.AppendLine(CuratedWord.generatePartialQuery());
             sql.AppendLine($"WHERE [uid] = '{uid_.ToString()}'");
 
-            UsefulObject.get<CuratedWord>(_dbConnectionString, sql.ToString(), ref word);
-
-            return word;
+            return await UsefulObject.getAsync<CuratedWord>(_dbConnectionString, sql.ToString());
         }
 
 
