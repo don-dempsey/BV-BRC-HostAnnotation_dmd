@@ -279,8 +279,8 @@ namespace HostAnnotation.Services {
             return await _dataProvider.getHostTaxaMatches(hostID_);
         }
 
-        public async Task<Result> normalizeCommonNames() {
-            return await _dataProvider.normalizeCommonNames();
+        public async Task<Result> normalizeAllCommonNames() {
+            return await _dataProvider.normalizeAllCommonNames();
         }
 
         public async Task<Result<List<AnnotatedHost>?>> searchAnnotatedHosts(string searchText_) {

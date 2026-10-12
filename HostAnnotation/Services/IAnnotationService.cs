@@ -17,7 +17,7 @@ namespace HostAnnotation.Services {
 
         Task<List<HostTaxonMatch>?> getHostTaxaMatches(int hostID_);
 
-        Task<Result> normalizeCommonNames();
+        Task<Result> normalizeAllCommonNames();
 
         Task<Result<List<AnnotatedHost>?>> searchAnnotatedHosts(string searchText_);
 

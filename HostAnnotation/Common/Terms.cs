@@ -6,6 +6,22 @@ namespace HostAnnotation.Common {
 
     public class Terms {
 
+        // Return the enum type and value as "<enum type>.<enum value>". Generally, this
+        // corresponds to <vocab_key>.<term_key> or term.term_full_key in the database.
+        // Created by Claude Haiku 4.5 (duck.ai)
+        public static string enumFullKey(Enum? enumValue) {
+
+            if (enumValue == null) {
+                return string.Empty;
+            }
+
+            var enumType = enumValue!.GetType();
+            var enumName = enumType.Name;
+            var valueName = enumValue!.ToString();
+
+            return $"{enumName}.{valueName}";
+        }
+
         // Return the enum's name as a string.
         public static string? enumString(Enum? enum_) {
             if (enum_ == null) { return null; }

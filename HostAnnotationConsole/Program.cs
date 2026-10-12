@@ -197,7 +197,7 @@ internal class Program {
         var annotationService = scope.ServiceProvider.GetRequiredService<IAnnotationService>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-        var result = await annotationService.normalizeCommonNames();
+        var result = await annotationService.normalizeAllCommonNames();
         if (result.isFailure) {
             logger.LogError(result.getErrorMessage());
         }

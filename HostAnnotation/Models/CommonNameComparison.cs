@@ -1,58 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using HostAnnotation.Utilities;
-using HostAnnotation.Common;
 
 namespace HostAnnotation.Models {
 
     public class CommonNameComparison : UsefulObject {
 
-        // ITIS fields
-        [Useful("itis_tn_id", true)]
-        public int? itisTnId { get; set; }
+        // The name and id of the taxon name record from one taxonomy database.
+        [Useful("id_1", false)]
+        public int? id1 { get; set; }
 
-        [Useful("itis_name", true)]
-        public string? itisName { get; set; }
+        [Useful("name_1", false)]
+		public string? name1 { get; set; }
 
-        [Useful("itis_name_class", true)]
-        public Terms.ncbi_name_class? itisNameClass { get; set; }
+        [Useful("rank_1", false)]
+        public string? rank1 { get; set; }
 
-
-        // NCBI Taxonomy fields
-        [Useful("ncbi_tn_id", true)]
-        public int? ncbiTnId { get; set; }
-
-        [Useful("ncbi_name", true)]
-        public string? ncbiName { get; set; }
-
-        [Useful("ncbi_name_class", true)]
-        public Terms.ncbi_name_class? ncbiNameClass { get; set; }
-
-
-        // Get all NCBI and ITIS taxa that have the same common name, but with inconsistent case.
-        public static string generatePartialQuery() {
-            var sql = @"
-                SELECT
-	                itis.id AS itis_tn_id,
-                    itis.name AS itis_name,
-	                itis.name_class AS itis_name_class,
-	                ncbi.id AS ncbi_tn_id,
-                    ncbi.name AS ncbi_name,
-                    ncbi.name_class AS ncbi_name_class
+        // The name and id of the taxon name record from another taxonomy database.
+        [Useful("id_2", false)]
+        public int? id2 { get; set; }
         
-                FROM v_taxon_name ncbi
-                JOIN v_taxon_name itis on itis.name = ncbi.name
-                WHERE ncbi.taxonomy_db = 'ncbi'
-                AND itis.taxonomy_db = 'itis'
-                AND ncbi.name COLLATE LATIN1_GENERAL_CS_AS <> itis.name COLLATE LATIN1_GENERAL_CS_AS
-                AND ncbi.name_class IN ('common_name', 'genbank_common_name')
-                AND itis.name_class = 'common_name'
-            ";
+        [Useful("name_2", false)]
+        public string? name2 { get; set; }
 
-            return sql;
-        }
+        [Useful("rank_2", false)]
+        public string? rank2 { get; set; }
+
     }
 }
